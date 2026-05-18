@@ -54,19 +54,26 @@ export class BookingsService {
 
   async create(user: User, dto: CreateBookingDto) {
     return this.dataSource.transaction(async (manager) => {
+      // Lock showtime only (no LEFT JOIN) — Postgres rejects FOR UPDATE on outer-join rows.
       const showtime = await manager
         .createQueryBuilder(Showtime, 'showtime')
-        .leftJoinAndSelect('showtime.movie', 'movie')
-        .leftJoinAndSelect('showtime.screen', 'screen')
-        .leftJoinAndSelect('screen.cinema', 'cinema')
-        .leftJoinAndSelect('showtime.bookings', 'bookings')
+        .innerJoinAndSelect('showtime.movie', 'movie')
+        .innerJoinAndSelect('showtime.screen', 'screen')
+        .innerJoinAndSelect('screen.cinema', 'cinema')
         .where('showtime.id = :id', { id: dto.showtimeId })
         .setLock('pessimistic_write')
         .getOne();
 
       if (!showtime) throw new NotFoundException('Showtime not found');
 
-      const booked = getBookedSeatsFromBookings(showtime.bookings ?? []);
+      const existingBookings = await manager
+        .createQueryBuilder(Booking, 'booking')
+        .where('booking.showtimeId = :showtimeId', { showtimeId: dto.showtimeId })
+        .andWhere('booking.status = :status', { status: BookingStatus.CONFIRMED })
+        .setLock('pessimistic_write')
+        .getMany();
+
+      const booked = getBookedSeatsFromBookings(existingBookings);
       const capacity = getScreenCapacity(showtime.screen);
       const allSeats = new Set(getScreenSeatIds(showtime.screen));
 
