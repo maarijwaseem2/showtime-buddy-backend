@@ -26,12 +26,32 @@ function resolveSsl(
   return undefined;
 }
 
+function isDeployedEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.RENDER) ||
+    Boolean(process.env.VERCEL)
+  );
+}
+
 function assertProductionDatabaseHost(host: string): void {
-  if (process.env.NODE_ENV !== 'production') return;
+  if (!isDeployedEnvironment()) return;
   if (!LOCAL_DB_HOSTS.has(host)) return;
   throw new Error(
-    'Refusing to use localhost for PostgreSQL in production. In Render → Environment, set DATABASE_URL to your Neon URL and remove DATABASE_HOST / DATABASE_PORT / DATABASE_USER / DATABASE_PASSWORD / DATABASE_NAME if they point to localhost.',
+    'Refusing localhost for PostgreSQL on Render/production. Delete DATABASE_HOST, DATABASE_PORT, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME from Render → Environment. Add only DATABASE_URL with your Neon connection string, then redeploy.',
   );
+}
+
+function assertRenderDatabaseConfig(
+  get: (key: string, defaultValue?: string) => string | undefined,
+): void {
+  if (!process.env.RENDER) return;
+  if (get('DATABASE_URL')) return;
+  if (get('DATABASE_HOST') || get('DATABASE_NAME')) {
+    throw new Error(
+      `Render is using local DB vars (host=${get('DATABASE_HOST') ?? '?'}, db=${get('DATABASE_NAME') ?? '?'}) but DATABASE_URL is missing. In Render → Environment: remove DATABASE_HOST/PORT/USER/PASSWORD/NAME and add DATABASE_URL=your Neon URL.`,
+    );
+  }
 }
 
 function parseDatabaseUrl(
@@ -54,6 +74,8 @@ function parseDatabaseUrl(
 export function resolvePostgresConfig(
   get: (key: string, defaultValue?: string) => string | undefined,
 ): PostgresConnectionOptions {
+  assertRenderDatabaseConfig(get);
+
   const databaseUrl = get('DATABASE_URL');
   if (databaseUrl) {
     return parseDatabaseUrl(databaseUrl, get);
