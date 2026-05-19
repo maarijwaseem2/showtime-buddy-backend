@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -86,19 +91,37 @@ export class MoviesService {
     };
   }
 
+  private rethrowUniqueSlug(error: unknown, slug: string): never {
+    if (
+      error instanceof QueryFailedError &&
+      (error as QueryFailedError & { code?: string }).code === '23505'
+    ) {
+      throw new ConflictException(`Movie slug "${slug}" already exists`);
+    }
+    throw error;
+  }
+
   async create(dto: CreateMovieDto) {
     const movie = this.moviesRepo.create({
       ...dto,
       rating: dto.rating,
     });
-    await this.moviesRepo.save(movie);
+    try {
+      await this.moviesRepo.save(movie);
+    } catch (error) {
+      this.rethrowUniqueSlug(error, dto.slug);
+    }
     return this.toMovieDto(movie);
   }
 
   async update(slug: string, dto: Partial<CreateMovieDto>) {
     const movie = await this.findBySlug(slug);
     Object.assign(movie, dto);
-    await this.moviesRepo.save(movie);
+    try {
+      await this.moviesRepo.save(movie);
+    } catch (error) {
+      this.rethrowUniqueSlug(error, dto.slug ?? slug);
+    }
     return this.toMovieDto(movie);
   }
 
