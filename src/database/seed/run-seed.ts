@@ -13,6 +13,7 @@ import {
   Booking,
 } from '../entities';
 import { UserRole, MovieStatus, SEAT_ROWS, SEAT_COLS, VIP_ROWS } from '../../common/enums';
+import { postgresConfigFromEnv } from '../database.config';
 
 config();
 
@@ -150,13 +151,10 @@ async function copyPoster(filename: string): Promise<string> {
 }
 
 async function run() {
+  const db = postgresConfigFromEnv();
   const ds = new DataSource({
     type: 'postgres',
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-    username: process.env.DATABASE_USER || 'postgres',
-    password: process.env.DATABASE_PASSWORD || '',
-    database: process.env.DATABASE_NAME || 'cineslot',
+    ...db,
     entities: [User, Cinema, Screen, Movie, Showtime, Booking],
     synchronize: false,
   });

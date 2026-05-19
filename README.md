@@ -79,6 +79,19 @@ Posters served from: `http://localhost:3000/uploads/posters/`
 
 If you see `ECONNREFUSED` on `127.0.0.1:5432`, the database is not linked or `DATABASE_URL` / `DATABASE_HOST` is missing.
 
+### Seed production (Neon) from your PC
+
+Render does not run the seed automatically. After deploy, from your machine:
+
+```bash
+# .env must contain DATABASE_URL (Neon) and ADMIN_EMAIL / ADMIN_PASSWORD
+npm install --include=dev
+npm run migration:run
+npm run seed
+```
+
+Or after build: `npm run build && npm run seed:prod` (uses `dist/` + dotenv).
+
 ## Frontend
 
 Set in `showtime-buddy-frontend/.env`:
