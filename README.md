@@ -65,6 +65,20 @@ Posters served from: `http://localhost:3000/uploads/posters/`
 - `GET /api/bookings/me` — User bookings
 - Admin routes under `/api/admin/*` (ADMIN role)
 
+## Deploy on Render
+
+1. Create a **PostgreSQL** database on Render, then **link** it to your web service (Environment → Add from database). That sets `DATABASE_URL`.
+2. Set these environment variables on the web service:
+   - `JWT_SECRET` — long random string
+   - `NODE_ENV=production`
+   - `DATABASE_RUN_MIGRATIONS=true` — on first deploy (or run migrations manually), then set back to `false`
+   - `CORS_ORIGINS` — your frontend URL(s), comma-separated
+3. **Start command:** `npm run start:prod` (not `npm run start`)
+4. **Build command:** `npm install && npm run build`
+5. Render sets `PORT` automatically; the app reads it in `main.ts`.
+
+If you see `ECONNREFUSED` on `127.0.0.1:5432`, the database is not linked or `DATABASE_URL` / `DATABASE_HOST` is missing.
+
 ## Frontend
 
 Set in `showtime-buddy-frontend/.env`:
