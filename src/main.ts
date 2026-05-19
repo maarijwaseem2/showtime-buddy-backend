@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { buildCorsOptions } from './cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,15 +19,7 @@ async function bootstrap() {
     }),
   );
 
-  const corsOrigins = config
-    .get<string>('CORS_ORIGINS', 'http://localhost:8080')
-    .split(',')
-    .map((o) => o.trim());
-
-  app.enableCors({
-    origin: corsOrigins,
-    credentials: true,
-  });
+  app.enableCors(buildCorsOptions(config.get<string>('CORS_ORIGINS')));
 
   const uploadDir = config.get('UPLOAD_DIR', 'uploads');
   app.useStaticAssets(join(process.cwd(), uploadDir), {
