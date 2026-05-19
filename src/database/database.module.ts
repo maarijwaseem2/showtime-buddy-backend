@@ -18,6 +18,9 @@ import { postgresConfigFromConfigService } from './database.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const db = postgresConfigFromConfigService(config);
+        console.log(
+          `[Database] Connecting to ${db.host}:${db.port}/${db.database} (ssl=${Boolean(db.ssl)})`,
+        );
         return {
           type: 'postgres' as const,
           ...db,
