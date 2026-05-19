@@ -74,7 +74,7 @@ Posters served from: `http://localhost:3000/uploads/posters/`
    - `DATABASE_RUN_MIGRATIONS=true` — on first deploy (or run migrations manually), then set back to `false`
    - `CORS_ORIGINS` — your frontend URL(s), comma-separated
 3. **Start command:** `npm run start:prod` (not `npm run start`)
-4. **Build command:** `npm install && npm run build`
+4. **Build command:** `npm install && npm run build` (uses `tsc`; works even when `NODE_ENV=production` skips devDependencies)
 5. Render sets `PORT` automatically; the app reads it in `main.ts`.
 
 If you see `ECONNREFUSED` on `127.0.0.1:5432`, the database is not linked or `DATABASE_URL` / `DATABASE_HOST` is missing.
