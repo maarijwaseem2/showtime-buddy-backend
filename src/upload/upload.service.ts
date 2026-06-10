@@ -3,18 +3,19 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { mkdir, writeFile } from 'fs/promises';
-import { join, extname } from 'path';
-import { randomUUID } from 'crypto';
+import { extname } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
 const ALLOWED = ['.jpg', '.jpeg', '.png', '.webp'];
 
 @Injectable()
 export class UploadService {
-  constructor(private config: ConfigService) {}
-
-  private get uploadDir() {
-    return this.config.get('UPLOAD_DIR', 'uploads');
+  constructor(private config: ConfigService) {
+    cloudinary.config({
+      cloud_name: this.config.get('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.config.get('CLOUDINARY_API_KEY'),
+      api_secret: this.config.get('CLOUDINARY_API_SECRET'),
+    });
   }
 
   async savePoster(file: Express.Multer.File): Promise<string> {
@@ -25,13 +26,15 @@ export class UploadService {
       throw new BadRequestException('Only jpg, png, webp allowed');
     }
 
-    const postersDir = join(process.cwd(), this.uploadDir, 'posters');
-    await mkdir(postersDir, { recursive: true });
-
-    const filename = `${randomUUID()}${ext}`;
-    const fullPath = join(postersDir, filename);
-    await writeFile(fullPath, file.buffer);
-
-    return `/uploads/posters/${filename}`;
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'showtime/posters', resource_type: 'image' },
+        (error, result) => {
+          if (error || !result) return reject(error ?? new Error('Upload failed'));
+          resolve(result.secure_url);
+        },
+      );
+      stream.end(file.buffer);
+    });
   }
 }

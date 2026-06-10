@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { copyFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 import {
   User,
   Cinema,
@@ -139,15 +140,31 @@ async function copyPoster(filename: string): Promise<string> {
     'assets',
     filename,
   );
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (cloudName && apiKey && apiSecret && existsSync(frontendAssets)) {
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+    const result = await cloudinary.uploader.upload(frontendAssets, {
+      folder: 'showtime/posters',
+      public_id: filename.replace(/\.[^.]+$/, ''),
+      overwrite: true,
+      resource_type: 'image',
+    });
+    return result.secure_url;
+  }
+
+  // Fallback: copy to local filesystem
   const postersDir = join(process.cwd(), 'uploads', 'posters');
   await mkdir(postersDir, { recursive: true });
-  const destName = filename;
-  const dest = join(postersDir, destName);
-
+  const dest = join(postersDir, filename);
   if (existsSync(frontendAssets)) {
     await copyFile(frontendAssets, dest);
   }
-  return `/uploads/posters/${destName}`;
+  const apiUrl = process.env.API_URL || 'http://localhost:3000';
+  return `${apiUrl}/uploads/posters/${filename}`;
 }
 
 async function run() {
