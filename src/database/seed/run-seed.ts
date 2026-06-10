@@ -131,20 +131,13 @@ const SLOT_TEMPLATES = [
 ];
 
 async function copyPoster(filename: string): Promise<string> {
-  const frontendAssets = join(
-    process.cwd(),
-    '..',
-    'showtime-buddy-frontend',
-    'src',
-    'assets',
-    filename,
-  );
+  const seedAssets = join(process.cwd(), 'seeds', 'posters', filename);
   const postersDir = join(process.cwd(), 'uploads', 'posters');
   await mkdir(postersDir, { recursive: true });
   const dest = join(postersDir, filename);
 
-  if (existsSync(frontendAssets)) {
-    await copyFile(frontendAssets, dest);
+  if (existsSync(seedAssets)) {
+    await copyFile(seedAssets, dest);
   }
   return `/uploads/posters/${filename}`;
 }
