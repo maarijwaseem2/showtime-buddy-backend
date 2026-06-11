@@ -154,6 +154,15 @@ async function run() {
   await ds.initialize();
   console.log('Database connected. Seeding...');
 
+  // Seed runs before the app (which handles schema sync), so make sure
+  // newer columns exist before querying the users table.
+  await ds.query(
+    `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "reset_token_hash" character varying`,
+  );
+  await ds.query(
+    `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "reset_token_expires" timestamptz`,
+  );
+
   const userRepo = ds.getRepository(User);
   const cinemaRepo = ds.getRepository(Cinema);
   const screenRepo = ds.getRepository(Screen);
