@@ -6,7 +6,6 @@ import {
 import { QueryFailedError } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { Movie } from '../database/entities/movie.entity';
 import { Cinema } from '../database/entities/cinema.entity';
 import { QueryMoviesDto } from './dto/query-movies.dto';
@@ -17,14 +16,12 @@ export class MoviesService {
   constructor(
     @InjectRepository(Movie) private moviesRepo: Repository<Movie>,
     @InjectRepository(Cinema) private cinemasRepo: Repository<Cinema>,
-    private config: ConfigService,
   ) {}
 
   resolvePosterUrl(posterUrl: string | null): string | null {
     if (!posterUrl) return null;
     if (posterUrl.startsWith('http')) return posterUrl;
-    const base = this.config.get('API_URL', 'http://localhost:3000');
-    return `${base}${posterUrl.startsWith('/') ? '' : '/'}${posterUrl}`;
+    return posterUrl.startsWith('/') ? posterUrl : `/${posterUrl}`;
   }
 
   toMovieDto(movie: Movie, includeSlots = false, slots?: unknown[]) {
