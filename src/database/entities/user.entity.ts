@@ -29,6 +29,12 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  @Column({ name: 'reset_token_hash', type: 'varchar', nullable: true })
+  resetTokenHash: string | null;
+
+  @Column({ name: 'reset_token_expires', type: 'timestamptz', nullable: true })
+  resetTokenExpires: Date | null;
+
   @OneToMany(() => Booking, (b) => b.user)
   bookings: Booking[];
 

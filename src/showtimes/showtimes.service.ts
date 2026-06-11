@@ -116,6 +116,19 @@ export class ShowtimesService {
 
   async createForMovie(slug: string, dto: CreateShowtimeDto) {
     const movie = await this.moviesService.findBySlug(slug);
+
+    // Showtimes can only be scheduled from today up to 7 days ahead
+    const today = new Date();
+    const toDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 6);
+    if (dto.showDate < toDateStr(today) || dto.showDate > toDateStr(maxDate)) {
+      throw new BadRequestException(
+        'Showtimes can only be added for the next 7 days',
+      );
+    }
+
     const showtime = this.showtimesRepo.create({
       movieId: movie.id,
       ...dto,

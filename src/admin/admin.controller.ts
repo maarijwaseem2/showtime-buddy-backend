@@ -21,6 +21,7 @@ import { MoviesService } from '../movies/movies.service';
 import { ShowtimesService } from '../showtimes/showtimes.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { CreateMovieDto } from '../movies/dto/create-movie.dto';
+import { UpdateMovieDto } from '../movies/dto/update-movie.dto';
 import { CreateShowtimeDto } from '../showtimes/dto/create-showtime.dto';
 import { UploadService } from '../upload/upload.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -76,7 +77,7 @@ export class AdminController {
   }
 
   @Patch('movies/:slug')
-  updateMovie(@Param('slug') slug: string, @Body() dto: Partial<CreateMovieDto>) {
+  updateMovie(@Param('slug') slug: string, @Body() dto: UpdateMovieDto) {
     return this.moviesService.update(slug, dto);
   }
 

@@ -13,7 +13,10 @@ export class ShowtimesController {
     if (!date) {
       return [];
     }
-    return this.showtimesService.findByMovieAndDate(slug, date);
+    // Full slots are included so the UI can show "Sold out" instead of hiding them
+    return this.showtimesService.findByMovieAndDate(slug, date, {
+      hideFull: false,
+    });
   }
 
   @Get('showtimes/:id')

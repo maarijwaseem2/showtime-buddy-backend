@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -7,10 +8,15 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'crypto';
 import { User } from '../database/entities/user.entity';
 import { UserRole } from '../common/enums';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+
+const RESET_CODE_TTL_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -59,6 +65,49 @@ export class AuthService {
 
   me(user: User) {
     return this.sanitize(user);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.usersRepo.findOne({
+      where: { email: dto.email.toLowerCase() },
+    });
+    // Generic response so we don't reveal which emails are registered
+    if (!user) {
+      return { message: 'If that email exists, a reset code has been issued' };
+    }
+
+    const code = String(randomInt(100000, 1000000));
+    user.resetTokenHash = await bcrypt.hash(code, 10);
+    user.resetTokenExpires = new Date(Date.now() + RESET_CODE_TTL_MS);
+    await this.usersRepo.save(user);
+
+    // No email service configured: code is returned in the response.
+    // Plug an email provider here and remove `resetCode` for production.
+    return {
+      message: 'Reset code generated. Use it within 15 minutes.',
+      resetCode: code,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.usersRepo.findOne({
+      where: { email: dto.email.toLowerCase() },
+    });
+    if (!user || !user.resetTokenHash || !user.resetTokenExpires) {
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+    if (user.resetTokenExpires.getTime() < Date.now()) {
+      throw new BadRequestException('Reset code has expired');
+    }
+    const ok = await bcrypt.compare(dto.code, user.resetTokenHash);
+    if (!ok) throw new BadRequestException('Invalid or expired reset code');
+
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    user.resetTokenHash = null;
+    user.resetTokenExpires = null;
+    await this.usersRepo.save(user);
+
+    return { message: 'Password updated. You can now sign in.' };
   }
 
   private buildAuthResponse(user: User) {
